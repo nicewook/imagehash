@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/md5"
+	"crypto/sha1"
 	"database/sql"
 	"encoding/hex"
 	"flag"
@@ -16,6 +17,12 @@ import (
 func GetMD5Hash(b []byte) string {
 	hash := md5.Sum(b)
 	return hex.EncodeToString(hash[:])
+}
+
+func GetSHA1Hash(b []byte) string {
+	h := sha1.New()
+	h.Write(b)
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 func InitDB(file string) (*sql.DB, error) {
@@ -62,7 +69,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	hashcheck := make(map[string]struct{}, 80000)
+	hashcheck := make(map[string]string, 80000)
 
 	start := time.Now()
 	log.Println(start.Format(time.RFC3339))
@@ -76,12 +83,13 @@ func main() {
 		}
 		// fmt.Printf("dir: %v: name: %s\n", info.IsDir(), path)
 		b, _ := os.ReadFile(path)
-		hash := GetMD5Hash(b)
+		// hash := GetMD5Hash(b)
+		hash := GetSHA1Hash(b)
 
-		if _, ok := hashcheck[hash]; ok {
-			log.Println("already exist:", hash)
+		if p, ok := hashcheck[hash]; ok {
+			log.Printf("already exist:\nold path: %v\nnew path: %v", p, path)
 		} else {
-			hashcheck[hash] = struct{}{}
+			hashcheck[hash] = path
 		}
 
 		// fmt.Printf("%v, %s, %s\n", time.Now().Format(time.RFC3339Nano), hash, path)
